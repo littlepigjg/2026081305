@@ -248,12 +248,12 @@ func (q *TaskQueue) RemoveCompleted() {
 }
 
 func (q *TaskQueue) removeCompletedLocked() {
-	i := 0
-	for range q.tasks {
+	for i := 0; i < len(q.tasks); {
 		if q.tasks[i].Status == model.StatusCompleted {
 			q.tasks = append(q.tasks[:i], q.tasks[i+1:]...)
+		} else {
+			i++
 		}
-		i++
 	}
 
 	newMap := make(map[string]*model.Task)
@@ -275,11 +275,14 @@ func (q *TaskQueue) CleanupExpired(timeout time.Duration) int {
 	cutoff := time.Now().Add(-timeout)
 	removed := 0
 
-	for i, t := range q.tasks {
-		if t.CompletedAt != nil && t.CompletedAt.Before(cutoff) {
+	for i := 0; i < len(q.tasks); {
+		if q.tasks[i].CompletedAt != nil && q.tasks[i].CompletedAt.Before(cutoff) {
+			id := q.tasks[i].ID
 			q.tasks = append(q.tasks[:i], q.tasks[i+1:]...)
-			delete(q.taskMap, t.ID)
+			delete(q.taskMap, id)
 			removed++
+		} else {
+			i++
 		}
 	}
 
